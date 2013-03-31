@@ -15,17 +15,12 @@
  */
 package org.springsource.restbucks;
 
-import javax.persistence.EntityManagerFactory;
-import javax.sql.DataSource;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.*;
 import org.springframework.context.annotation.ComponentScan.Filter;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
+import org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguration;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.Database;
@@ -34,61 +29,27 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
+
+import javax.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
 
 /**
  * Spring JavaConfig configuration class to setup a Spring container and infrastructure components like a
  * {@link DataSource}, a {@link EntityManagerFactory} and a {@link PlatformTransactionManager}.
- * 
+ *
  * @author Oliver Gierke
  */
+
 @Configuration
-@ComponentScan(includeFilters = @Filter(Service.class), useDefaultFilters = false)
+@ComponentScan (includeFilters = @Filter (Service.class), useDefaultFilters = false)
 @EnableAsync
 @EnableAspectJAutoProxy
 @EnableJpaRepositories
 @EnableTransactionManagement
-class ApplicationConfig {
+@ImportResource ("classpath:applicationContext.xml")
+// this is the magic binding to spring data rest without EntityLink problems. 
+@Import (RepositoryRestMvcConfiguration.class)
+class ApplicationConfig  {
 
-	/**
-	 * Bootstraps an in-memory HSQL database.
-	 * 
-	 * @return
-	 * @see http 
-	 *      ://static.springsource.org/spring/docs/3.1.x/spring-framework-reference/html/jdbc.html#jdbc-embedded-database
-	 *      -support
-	 */
-	@Bean
-	public DataSource dataSource() {
-		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-		return builder.setType(EmbeddedDatabaseType.HSQL).build();
-	}
-
-	/**
-	 * Sets up a {@link LocalContainerEntityManagerFactoryBean} to use Hibernate. Activates picking up entities from the
-	 * project's base package.
-	 * 
-	 * @return
-	 */
-	@Bean
-	public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
-
-		HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
-		vendorAdapter.setDatabase(Database.HSQL);
-		vendorAdapter.setGenerateDdl(true);
-
-		LocalContainerEntityManagerFactoryBean factory = new LocalContainerEntityManagerFactoryBean();
-		factory.setJpaVendorAdapter(vendorAdapter);
-		factory.setPackagesToScan(getClass().getPackage().getName());
-		factory.setDataSource(dataSource());
-
-		return factory;
-	}
-
-	@Bean
-	public PlatformTransactionManager transactionManager() {
-
-		JpaTransactionManager txManager = new JpaTransactionManager();
-		txManager.setEntityManagerFactory(entityManagerFactory().getObject());
-		return txManager;
-	}
 }
